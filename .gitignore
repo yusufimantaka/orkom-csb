@@ -1,0 +1,8 @@
+# Ignore ModelSim/Quartus/temporary files
+work/
+*.wlf
+*.vcd
+*.log
+*.mti
+*.mpf
+*.cr.mti
