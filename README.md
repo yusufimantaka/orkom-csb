@@ -8,18 +8,6 @@ This project implements a **double encryption system** using:
 
 ---
 
-## 📁 Project Structure
-orkom_project/
-├── sdes.v # S-DES encryption module
-├── lfsr.v # 32-bit LFSR hashing module
-├── top_module.v # Top-level module connecting S-DES and LFSR
-├── testbench.v # Testbench for simulation
-├── compile_and_run.do # Optional ModelSim DO script for automation
-└── waveform.vcd # (Optional) waveform dump file
-
-
----
-
 ## ⚙️ How It Works
 
 1. **S-DES Module (`sdes.v`)**  
