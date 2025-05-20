@@ -1,7 +1,8 @@
 module sdes (
-    input [7:0] plaintext,
+    input [7:0] data_input,
     input [9:0] key,
-    output [7:0] ciphertext
+    input mode,
+    output [7:0] data_output
 );
     // Internal signals
     wire [7:0] ip_out;
@@ -11,10 +12,11 @@ module sdes (
     
     // Key generation signals
     wire [7:0] k1, k2;
+    wire [7:0] subkey1_for_round1, subkey2_for_round2;
     
     // Initial Permutation (IP)
-    assign ip_out = {plaintext[1], plaintext[5], plaintext[2], plaintext[0],
-                    plaintext[3], plaintext[7], plaintext[4], plaintext[6]};
+    assign ip_out = {data_input[1], data_input[5], data_input[2], data_input[0],
+                    data_input[3], data_input[7], data_input[4], data_input[6]};
     
     // Key Generation
     key_generator key_gen (
@@ -23,26 +25,37 @@ module sdes (
         .k2(k2)
     );
     
+    // Select subkeys based on mode
+    // Encrypt: k1 then k2
+    // Decrypt: k2 then k1
+    assign subkey1_for_round1 = (mode == 1'b0) ? k1 : k2;
+    assign subkey2_for_round2 = (mode == 1'b0) ? k2 : k1;
+
     // Round 1
     feistel_round round1 (
         .data_in(ip_out),
-        .subkey(k1),
+        .subkey(subkey1_for_round1),
         .data_out(round1_out)
     );
     
-    // Round 2 (with swap)
+    // Round 2 (input is the direct output of round1, as feistel_round incorporates the conceptual swap)
     feistel_round round2 (
-        .data_in({round1_out[3:0], round1_out[7:4]}),
-        .subkey(k2),
+        .data_in(round1_out),
+        .subkey(subkey2_for_round2),
         .data_out(round2_out)
     );
     
-    // Final Permutation (IP-1)
-    assign ip_inv_out = {round2_out[3], round2_out[0], round2_out[2],
-                        round2_out[4], round2_out[6], round2_out[1],
-                        round2_out[7], round2_out[5]};
-    
-    assign ciphertext = ip_inv_out;
+    // The output of round2 (round2_out) is effectively (R_final_mangled, L_final_mangled)
+    // because feistel_round inherently performs a swap. 
+    // For IP-1, we need (L_final_mangled, R_final_mangled).
+    // So, we must swap the halves of round2_out here.
+    wire [7:0] data_before_ip_inv;
+    assign data_before_ip_inv = {round2_out[3:0], round2_out[7:4]};
+
+    // Final Permutation (IP-1) - Corrected to be the true inverse of ip_out
+    assign data_output = {data_before_ip_inv[2], data_before_ip_inv[0], data_before_ip_inv[6],
+                           data_before_ip_inv[1], data_before_ip_inv[3], data_before_ip_inv[5],
+                           data_before_ip_inv[7], data_before_ip_inv[4]};
 endmodule
 
 // Key Generator Module
